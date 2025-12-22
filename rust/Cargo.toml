@@ -18,8 +18,17 @@ polars = { version = "0.44", features = [
     "dtype-full",
     "regex",
     "sql",
+    "cloud",
+    "aws",
 ] }
 polars-sql = "0.44"
+polars-io =  { version = "0.44", features = [
+    "json",
+    "parquet",
+    "csv",
+    "cloud",
+    "aws",
+] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"

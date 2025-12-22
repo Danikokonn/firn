@@ -27,7 +27,7 @@ const (
 	OpLimit       = 15
 	OpQuery       = 16
 	OpJoin        = 17
-	
+
 	// Expression operations (stack-based)
 	OpExprColumn         = 100
 	OpExprLiteral        = 101
@@ -63,14 +63,14 @@ const (
 	OpExprStrToLowercase = 131
 	OpExprStrToUppercase = 132
 	OpExprSql            = 133
-	
+
 	// Window function operations
-	OpExprOver       = 140 // Applies window context to previous expression
-	OpExprRank       = 141 // Rank() function
-	OpExprDenseRank  = 142 // DenseRank() function
-	OpExprRowNumber  = 143 // RowNumber() function
-	OpExprLag        = 144 // Lag(n) function
-	OpExprLead       = 145 // Lead(n) function
+	OpExprOver      = 140 // Applies window context to previous expression
+	OpExprRank      = 141 // Rank() function
+	OpExprDenseRank = 142 // DenseRank() function
+	OpExprRowNumber = 143 // RowNumber() function
+	OpExprLag       = 144 // Lag(n) function
+	OpExprLead      = 145 // Lead(n) function
 
 	// Conditional expressions (When/Then/Otherwise)
 	OpExprWhen      = 150 // Start conditional chain

@@ -7,7 +7,9 @@ use polars::prelude::{DataFrame, LazyFrame, LazyGroupBy, Expr, col, len, CsvWrit
     concat, UnionArgs, SortMultipleOptions, Series, Column, PolarsError, JoinArgs as PolarJoinArgs, JoinCoalesce,
     IntoLazy, SerWriter};
 use polars_sql::SQLContext;
+use polars_io::json::{JsonFormat, JsonWriter};
 use std::ffi::CString;
+use std::io::Cursor;
 use std::os::raw::{c_char, c_int};
 use std::ptr;
 
@@ -681,6 +683,32 @@ pub extern "C" fn dataframe_to_string(handle: usize) -> *mut c_char {
     match CString::new(df_string) {
         Ok(c_string) => c_string.into_raw(),
         Err(_) => ptr::null_mut(),
+    }
+}
+
+/// Convert DataFrame to json-string representation (JSON format)
+#[no_mangle]
+pub extern "C" fn dataframe_to_json(handle: usize) -> *mut c_char {
+    if handle == 0 {
+        return ptr::null_mut();
+    }
+
+    let df = unsafe { &*(handle as *const DataFrame) };
+
+    let mut buffer = Cursor::new(Vec::new());
+    match JsonWriter::new(&mut buffer)
+        .with_json_format(JsonFormat::JsonLines)
+        .finish(&mut df.clone())
+    {
+        Ok(_) => {
+            let json_string = String::from_utf8(buffer.into_inner()).unwrap();
+
+            match CString::new(json_string) {
+                Ok(c_string) => c_string.into_raw(),
+                Err(_) => ptr::null_mut(),
+            }
+        }
+        Err(_) => std::ptr::null_mut(),
     }
 }
 

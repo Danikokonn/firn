@@ -37,13 +37,13 @@ This approach:
 
 ```bash
 # Build the main components
-bazel build //pkg/polars:polars //rust:firn_static
+bazel build //polars:polars //rust:firn_static
 
 # Build the Rust static library only
 bazel build //rust:firn_static
 
 # Build the Go library only  
-bazel build //pkg/polars:polars
+bazel build //polars:polars
 ```
 
 ### Cross-Compilation
@@ -63,12 +63,12 @@ bazel build //rust:rust_build_darwin_arm64
 **Recommended Testing Approach**:
 ```bash
 # 1. Build with Bazel (verifies integration)
-bazel build //pkg/polars:polars //rust:firn_static
+bazel build //polars:polars //rust:firn_static
 
 # 2. Test with Go toolchain (full functionality)
 make test
 # OR
-go test ./pkg/polars -v
+go test ./polars -v
 ```
 
 **Test Results**: All functionality works correctly including:
@@ -93,17 +93,17 @@ bazel clean --expunge
 
 ### Development Build (default)
 ```bash
-bazel build //pkg/polars:polars
+bazel build //polars:polars
 ```
 
 ### Release Build
 ```bash
-bazel build --config=release //pkg/polars:polars
+bazel build --config=release //polars:polars
 ```
 
 ### SIMD Optimized Build
 ```bash
-bazel build --config=simd //pkg/polars:polars
+bazel build --config=simd //polars:polars
 ```
 
 ## Platform Support

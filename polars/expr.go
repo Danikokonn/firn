@@ -445,7 +445,7 @@ func (expr *ExprNode) Over(partitionColumns ...string) *ExprNode {
 				for i, col := range partitionColumns {
 					rawColumns[i] = makeRawStr(col)
 				}
-				
+
 				return unsafe.Pointer(&C.WindowArgs{
 					partition_columns: &rawColumns[0],
 					partition_count:   C.int(len(partitionColumns)),
@@ -476,12 +476,12 @@ func (expr *ExprNode) OverOrdered(partitionColumns []string, orderColumns []stri
 				for i, col := range partitionColumns {
 					rawPartitionColumns[i] = makeRawStr(col)
 				}
-				
+
 				rawOrderColumns := make([]C.RawStr, len(orderColumns))
 				for i, col := range orderColumns {
 					rawOrderColumns[i] = makeRawStr(col)
 				}
-				
+
 				return unsafe.Pointer(&C.WindowArgs{
 					partition_columns: &rawPartitionColumns[0],
 					partition_count:   C.int(len(partitionColumns)),

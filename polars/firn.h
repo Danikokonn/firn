@@ -190,6 +190,7 @@ void free_string(char* error_message);
 size_t dataframe_height(uintptr_t handle);
 char* dataframe_to_csv(uintptr_t handle);
 char* dataframe_to_string(uintptr_t handle);
+char* dataframe_to_json(uintptr_t handle);
 
 // Testing and benchmarking helpers
 FfiResult dispatch_add_null_row(uintptr_t handle, uintptr_t args);

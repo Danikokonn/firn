@@ -22,11 +22,11 @@ const (
 
 // JoinSpec represents the specification for a join operation
 type JoinSpec struct {
-	leftOn    []string
-	rightOn   []string
-	joinType  JoinType
-	suffix    string
-	coalesce  bool
+	leftOn   []string
+	rightOn  []string
+	joinType JoinType
+	suffix   string
+	coalesce bool
 }
 
 // On creates a JoinSpec for joining on the same column names in both DataFrames
@@ -34,7 +34,7 @@ type JoinSpec struct {
 func On(columns ...string) JoinSpec {
 	return JoinSpec{
 		leftOn:   columns,
-		rightOn:  columns, // Same columns on both sides
+		rightOn:  columns,       // Same columns on both sides
 		joinType: JoinTypeInner, // Default to inner join
 		suffix:   "",
 		coalesce: false,
@@ -88,13 +88,13 @@ func (df *DataFrame) Join(other *DataFrame, spec JoinSpec) *DataFrame {
 	if other == nil {
 		return df.appendErrOp("Join: other DataFrame cannot be nil")
 	}
-	
+
 	if len(spec.leftOn) == 0 || len(spec.rightOn) == 0 {
 		return df.appendErrOp("Join: join columns cannot be empty")
 	}
-	
+
 	if len(spec.leftOn) != len(spec.rightOn) {
-		return df.appendErrOpf("Join: left columns (%d) and right columns (%d) must have same count", 
+		return df.appendErrOpf("Join: left columns (%d) and right columns (%d) must have same count",
 			len(spec.leftOn), len(spec.rightOn))
 	}
 
@@ -112,14 +112,14 @@ func (df *DataFrame) Join(other *DataFrame, spec JoinSpec) *DataFrame {
 				leftRawStrs[i] = makeRawStr(col)
 			}
 
-			// Convert right column names to RawStr array  
+			// Convert right column names to RawStr array
 			rightRawStrs := make([]C.RawStr, len(spec.rightOn))
 			for i, col := range spec.rightOn {
 				rightRawStrs[i] = makeRawStr(col)
 			}
 
 			return unsafe.Pointer(&C.JoinArgs{
-				other_handle:  C.uintptr_t(other.handle.handle),
+				other_handle: C.uintptr_t(other.handle.handle),
 				left_on:      (*C.RawStr)(unsafe.Pointer(&leftRawStrs[0])),
 				right_on:     (*C.RawStr)(unsafe.Pointer(&rightRawStrs[0])),
 				column_count: C.uintptr_t(len(spec.leftOn)),
@@ -173,9 +173,9 @@ func (df *DataFrame) CrossJoin(other *DataFrame) *DataFrame {
 		args: func() unsafe.Pointer {
 			// Cross join doesn't use join columns, so pass empty arrays
 			return unsafe.Pointer(&C.JoinArgs{
-				other_handle:  C.uintptr_t(other.handle.handle),
-				left_on:      nil, // No join columns for cross join
-				right_on:     nil, // No join columns for cross join
+				other_handle: C.uintptr_t(other.handle.handle),
+				left_on:      nil,            // No join columns for cross join
+				right_on:     nil,            // No join columns for cross join
 				column_count: C.uintptr_t(0), // No columns
 				how:          C.JoinType(JoinTypeCross),
 				suffix:       makeRawStr(""),

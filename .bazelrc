@@ -13,7 +13,7 @@ build --@rules_rust//:extra_rustc_flags=-Dwarnings
 
 # Platform-specific configurations
 build:macos --apple_platform_type=macos
-build:linux --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64
+build:linux --platforms=@rules_go//go/toolchain:linux_amd64
 
 # Cross-compilation configurations
 build:darwin_arm64 --platforms=@rules_rust//rust/platform:aarch64-apple-darwin
