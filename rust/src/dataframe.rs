@@ -697,7 +697,7 @@ pub extern "C" fn dataframe_to_json(handle: usize) -> *mut c_char {
 
     let mut buffer = Cursor::new(Vec::new());
     match JsonWriter::new(&mut buffer)
-        .with_json_format(JsonFormat::JsonLines)
+        .with_json_format(JsonFormat::Json)
         .finish(&mut df.clone())
     {
         Ok(_) => {
