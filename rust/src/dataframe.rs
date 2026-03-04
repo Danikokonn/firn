@@ -1,11 +1,12 @@
 use crate::{
-    execute_expr_ops, ContextType, ExecutionContext, FfiResult, JoinArgs, JoinType, LimitArgs, 
-    NullsOrdering, Operation, PolarsHandle, QueryArgs, RawStr, SortArgs, SortDirection, 
+    execute_expr_ops, ContextType, ExecutionContext, FfiResult, JoinArgs, JoinType, LimitArgs,
+    NullsOrdering, Operation, PolarsHandle, QueryArgs, RawStr, SortArgs, SortDirection,
     ERROR_INVALID_UTF8, ERROR_NULL_ARGS, ERROR_NULL_HANDLE, ERROR_POLARS_OPERATION,
 };
-use polars::prelude::{DataFrame, LazyFrame, LazyGroupBy, Expr, col, len, CsvWriter, 
+use polars::prelude::{DataFrame, LazyFrame, LazyGroupBy, Expr, col, len, CsvWriter,
     concat, UnionArgs, SortMultipleOptions, Series, Column, PolarsError, JoinArgs as PolarJoinArgs, JoinCoalesce,
-    IntoLazy, SerWriter};
+    IntoLazy, SerWriter, NamedFrom};
+use polars::datatypes::PlSmallStr;
 use polars_sql::SQLContext;
 use polars_io::json::{JsonFormat, JsonWriter};
 use std::ffi::CString;
@@ -54,6 +55,131 @@ pub struct ConcatArgs {
 pub struct FilterExprArgs {
     pub expr_ops: *const Operation, // Array of expression operations
     pub expr_count: usize,          // Number of expression operations
+}
+
+// Series dtype constants – must match the SERIES_DTYPE_* defines in firn.h
+const SERIES_DTYPE_INT8: i32    = 0;
+const SERIES_DTYPE_INT16: i32   = 1;
+const SERIES_DTYPE_INT32: i32   = 2;
+const SERIES_DTYPE_INT64: i32   = 3;
+const SERIES_DTYPE_UINT8: i32   = 4;
+const SERIES_DTYPE_UINT16: i32  = 5;
+const SERIES_DTYPE_UINT32: i32  = 6;
+const SERIES_DTYPE_UINT64: i32  = 7;
+const SERIES_DTYPE_FLOAT32: i32 = 8;
+const SERIES_DTYPE_FLOAT64: i32 = 9;
+const SERIES_DTYPE_STRING: i32  = 10;
+const SERIES_DTYPE_BOOL: i32    = 11;
+
+/// A single named series with typed data – layout must match SeriesData in firn.h
+#[repr(C)]
+pub struct SeriesData {
+    pub name:  RawStr,
+    pub dtype: i32,
+    pub data:  usize,   // uintptr_t – pointer to the typed data array
+    pub len:   usize,
+}
+
+/// Arguments for OpNewFromSeries – layout must match NewFromSeriesArgs in firn.h
+#[repr(C)]
+pub struct NewFromSeriesArgs {
+    pub series: *const SeriesData,
+    pub count:  usize,
+}
+
+/// Build a Polars DataFrame from an array of in-memory typed series passed over FFI.
+pub fn dispatch_new_from_series(context: &ExecutionContext) -> FfiResult {
+    if context.operation_args == 0 {
+        return FfiResult::error(ERROR_NULL_ARGS, "NewFromSeriesArgs cannot be null");
+    }
+
+    let args = unsafe { &*(context.operation_args as *const NewFromSeriesArgs) };
+
+    if args.series.is_null() || args.count == 0 {
+        return FfiResult::error(ERROR_NULL_ARGS, "Series array cannot be null or empty");
+    }
+
+    let series_slice = unsafe { std::slice::from_raw_parts(args.series, args.count) };
+    let mut columns: Vec<Column> = Vec::with_capacity(args.count);
+
+    for s in series_slice {
+        let name: PlSmallStr = match unsafe { s.name.as_str() } {
+            Ok(n) => n.into(),
+            Err(_) => return FfiResult::error(ERROR_INVALID_UTF8, "Invalid UTF-8 in series name"),
+        };
+
+        let series: Series = match s.dtype {
+            SERIES_DTYPE_INT8 => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const i8, s.len) };
+                Series::new(name, data)
+            }
+            SERIES_DTYPE_INT16 => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const i16, s.len) };
+                Series::new(name, data)
+            }
+            SERIES_DTYPE_INT32 => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const i32, s.len) };
+                Series::new(name, data)
+            }
+            SERIES_DTYPE_INT64 => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const i64, s.len) };
+                Series::new(name, data)
+            }
+            SERIES_DTYPE_UINT8 => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const u8, s.len) };
+                Series::new(name, data)
+            }
+            SERIES_DTYPE_UINT16 => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const u16, s.len) };
+                Series::new(name, data)
+            }
+            SERIES_DTYPE_UINT32 => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const u32, s.len) };
+                Series::new(name, data)
+            }
+            SERIES_DTYPE_UINT64 => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const u64, s.len) };
+                Series::new(name, data)
+            }
+            SERIES_DTYPE_FLOAT32 => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const f32, s.len) };
+                Series::new(name, data)
+            }
+            SERIES_DTYPE_FLOAT64 => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const f64, s.len) };
+                Series::new(name, data)
+            }
+            SERIES_DTYPE_STRING => {
+                // data points to a RawStr array; each entry borrows from a Go string
+                let raw_strs = unsafe { std::slice::from_raw_parts(s.data as *const RawStr, s.len) };
+                let mut strings: Vec<&str> = Vec::with_capacity(s.len);
+                for rs in raw_strs {
+                    match unsafe { rs.as_str() } {
+                        Ok(st) => strings.push(st),
+                        Err(_) => return FfiResult::error(ERROR_INVALID_UTF8, "Invalid UTF-8 in string series element"),
+                    }
+                }
+                Series::new(name, strings.as_slice())
+            }
+            SERIES_DTYPE_BOOL => {
+                let data = unsafe { std::slice::from_raw_parts(s.data as *const bool, s.len) };
+                Series::new(name, data)
+            }
+            unknown => {
+                return FfiResult::error(
+                    ERROR_POLARS_OPERATION,
+                    &format!("Unknown series dtype: {}", unknown),
+                )
+            }
+        };
+
+        columns.push(series.into());
+    }
+
+    match DataFrame::new(columns) {
+        Ok(df) => FfiResult::success(df),
+        Err(e) => FfiResult::error(ERROR_POLARS_OPERATION, &e.to_string()),
+    }
 }
 
 /// Dispatch function for creating new empty DataFrame

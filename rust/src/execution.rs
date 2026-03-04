@@ -110,6 +110,7 @@ fn dispatch_dataframe_operation(
 
     match opcode {
         OpCode::NewEmpty => (dispatch_new_empty(), ContextType::DataFrame),
+        OpCode::NewFromSeries => (dispatch_new_from_series(context), ContextType::DataFrame),
         OpCode::ReadCsv => (dispatch_read_csv(handle, context), ContextType::LazyFrame),
         OpCode::ReadParquet => (dispatch_read_parquet(handle, context), ContextType::LazyFrame),
         OpCode::Select => (dispatch_select(handle, context), ContextType::LazyFrame),

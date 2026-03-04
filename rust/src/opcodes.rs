@@ -27,6 +27,7 @@ pub enum OpCode {
     Limit = 15,
     Query = 16,
     Join = 17,
+    NewFromSeries = 18,
 
     // Expression operations (stack-based)
     ExprColumn = 100,
@@ -105,6 +106,7 @@ impl OpCode {
             15 => Some(OpCode::Limit),
             16 => Some(OpCode::Query),
             17 => Some(OpCode::Join),
+            18 => Some(OpCode::NewFromSeries),
             100 => Some(OpCode::ExprColumn),
             101 => Some(OpCode::ExprLiteral),
             102 => Some(OpCode::ExprAdd),

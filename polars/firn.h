@@ -138,6 +138,34 @@ typedef struct {
     bool wrap_numerical;     // If true, wrap overflowing numeric values instead of marking invalid
 } CastArgs;
 
+// Series dtype codes for NewFromSeries operation
+#define SERIES_DTYPE_INT8    0
+#define SERIES_DTYPE_INT16   1
+#define SERIES_DTYPE_INT32   2
+#define SERIES_DTYPE_INT64   3
+#define SERIES_DTYPE_UINT8   4
+#define SERIES_DTYPE_UINT16  5
+#define SERIES_DTYPE_UINT32  6
+#define SERIES_DTYPE_UINT64  7
+#define SERIES_DTYPE_FLOAT32 8
+#define SERIES_DTYPE_FLOAT64 9
+#define SERIES_DTYPE_STRING  10
+#define SERIES_DTYPE_BOOL    11
+
+// A single named series with typed data for DataFrame construction
+typedef struct {
+    RawStr     name;    // Column name
+    int32_t    dtype;   // Series dtype (see SERIES_DTYPE_* constants)
+    uintptr_t  data;    // Pointer to data array (type depends on dtype)
+    size_t     len;     // Number of elements
+} SeriesData;
+
+// Arguments for creating a DataFrame from in-memory series
+typedef struct {
+    SeriesData* series;  // Array of series
+    size_t      count;   // Number of series
+} NewFromSeriesArgs;
+
 // Centralized literal abstraction - handles all value types
 typedef struct {
     int value_type;       // 0=int, 1=float, 2=string, 3=bool

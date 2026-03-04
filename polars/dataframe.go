@@ -80,8 +80,22 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("polars error %d: %s", e.Code, e.Message)
 }
 
-// NewDataFrame creates a new empty DataFrame
-func NewDataFrame() *DataFrame {
+// NewDataFrame creates a DataFrame.
+//
+// When called with no arguments it returns a new empty DataFrame (original behavior).
+// When called with one or more *Series arguments it builds a DataFrame from those
+// in-memory series:
+//
+//	df := polars.NewDataFrame(
+//	    polars.NewSeries("name",   []string{"Alice", "Bob"}),
+//	    polars.NewSeries("age",    []int{25, 30}),
+//	    polars.NewSeries("salary", []float64{50000, 60000}),
+//	)
+func NewDataFrame(series ...*Series) *DataFrame {
+	if len(series) > 0 {
+		return newDataFrameFromSeries(series)
+	}
+
 	op := Operation{
 		opcode: OpNewEmpty,
 		args:   func() unsafe.Pointer { return unsafe.Pointer(&C.CountArgs{}) }, // Lazy allocation
